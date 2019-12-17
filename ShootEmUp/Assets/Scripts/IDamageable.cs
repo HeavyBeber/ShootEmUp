@@ -2,5 +2,7 @@
 
 public interface IDamageable
 {
-    void TakeHit(float _damage, RaycastHit hit);
+    void takeHit(float _damage, RaycastHit hit);
+    
+    void takeDamage(float _damage);
 }

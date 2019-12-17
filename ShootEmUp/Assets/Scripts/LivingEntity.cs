@@ -9,12 +9,18 @@ public class LivingEntity : MonoBehaviour, IDamageable
     protected float health;
     protected bool dead;
 
+    public event System.Action OnDeath;
+
     protected virtual void Start() {
         health = startingHealth;
     }
 
-    public void TakeHit (float _damage, RaycastHit _hit) {
-        health -= _damage;
+    public void takeHit (float damage, RaycastHit hit) {
+        takeDamage(damage);
+    }
+
+    public void takeDamage(float damage) {
+        health -= damage;
         if (health <= 0 && !dead) {
             Die();
         }
@@ -22,6 +28,9 @@ public class LivingEntity : MonoBehaviour, IDamageable
 
     protected void Die() {
         dead = true;
+        if (OnDeath != null) {
+            OnDeath();
+        }
         GameObject.Destroy(gameObject);
     }
 }
