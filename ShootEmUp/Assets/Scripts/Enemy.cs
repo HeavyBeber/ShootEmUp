@@ -14,6 +14,8 @@ public class Enemy : LivingEntity
     LivingEntity targetEntity;
     Material skinMaterial;
 
+    public ParticleSystem deathEffect;
+
     Color originalColor;
 
     float attackDistanceThreshold = .5f;
@@ -26,8 +28,7 @@ public class Enemy : LivingEntity
 
     bool hasTarget;
 
-    protected override void Start()
-    {
+    protected override void Start() {
         base.Start();
         pathFinder = GetComponent<UnityEngine.AI.NavMeshAgent>();    
         skinMaterial = GetComponent<Renderer>().material;
@@ -39,7 +40,7 @@ public class Enemy : LivingEntity
 
             target = GameObject.FindGameObjectWithTag("Player").transform;
             targetEntity = target.GetComponent<LivingEntity>();
-            targetEntity.OnDeath += onTargetDeath;
+            targetEntity.OnDeath += OnTargetDeath;
 
             myCollisionRadius = GetComponent<CapsuleCollider>().radius;
             targetCollisionRadius = target.GetComponent<CapsuleCollider>().radius;
@@ -49,7 +50,18 @@ public class Enemy : LivingEntity
 
     }
 
-    void onTargetDeath() {
+    public override void TakeHit (float damage, Vector3 hitPoint, Vector3 hitDirection) {
+        if (damage >= health) {
+            Destroy(
+                Instantiate(
+                    deathEffect.gameObject, hitPoint, Quaternion.FromToRotation(Vector3.forward, hitDirection)
+                ) as GameObject, 
+                deathEffect.startLifetime);
+        }
+        base.TakeHit(damage,hitPoint,hitDirection);
+    }
+
+    void OnTargetDeath() {
         hasTarget = false;
         currentState = State.IDLE;
     }
@@ -86,7 +98,7 @@ public class Enemy : LivingEntity
 
             if (percent > .5f && !hasAppliedDmg) {
                 hasAppliedDmg = true;
-                targetEntity.takeDamage(damage);
+                targetEntity.TakeDamage(damage);
             }
 
             percent += Time.deltaTime * attackSpeed;

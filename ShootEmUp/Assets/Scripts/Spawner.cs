@@ -8,24 +8,83 @@ public class Spawner : MonoBehaviour
     public Wave[] waves;
     public Enemy enemy;
 
+    LivingEntity playerEntity;
+    Transform playerTransform;
+
     Wave currentWave;
     int currentWaveNumber;
     int enemiesRemainingToSpawn;
     int enemiesRemainingAlive;
     float nextSpawnTime;
 
+    MapGenerator map;
+
+    float timeBewteenCampingChecks = 2;
+    float campThresholdDistance = 1.5f;
+    float nextCampingCheckTime;
+    Vector3 campingPosition;
+    bool isCamping;
+
+    bool isDisabled;
+
+    public event System.Action<int> OnNewWave;
+
     void Start() {
+        map = FindObjectOfType<MapGenerator>();
+        playerEntity = FindObjectOfType<Player>();
+        playerTransform = playerEntity.transform;
+
+        playerEntity.OnDeath += OnPlayerDeath;
+
+        nextCampingCheckTime = timeBewteenCampingChecks + Time.time;
+        campingPosition = playerTransform.position;
+
         NextWave();
     }
 
     void Update() {
-        if (enemiesRemainingToSpawn > 0 && Time.time > nextSpawnTime) {
-            enemiesRemainingToSpawn --;
-            nextSpawnTime = Time.time + currentWave.timeBetweenSpanws;
+        if (!isDisabled) {
+            if (Time.time > nextCampingCheckTime) {
+                nextCampingCheckTime = Time.time + timeBewteenCampingChecks;
+                
+                isCamping = Vector3.Distance(campingPosition,playerTransform.position) < campThresholdDistance;
+                campingPosition = playerTransform.position;
+            }
 
-            Enemy spawnedEnemy = Instantiate(enemy, Vector3.zero,Quaternion.identity) as Enemy;
-            spawnedEnemy.OnDeath += OnEnemyDeath;
+            if (enemiesRemainingToSpawn > 0 && Time.time > nextSpawnTime) {
+                enemiesRemainingToSpawn --;
+                nextSpawnTime = Time.time + currentWave.timeBetweenSpanws;
+                
+                StartCoroutine(SpawnEnemy());        
+            }
         }
+    }
+
+    IEnumerator SpawnEnemy() {
+        float spawnDelay = 1;
+        float tileFlashSpeed = 4;
+
+        Transform spawnTile = map.getRandomOpenTile();
+        if(isCamping) {
+            spawnTile = map.getTileFromPosition(playerTransform.position);
+        }
+
+        Material tileMat= spawnTile.GetComponent<Renderer>().material;
+        Color initialColor = tileMat.color;
+        Color flashColor = Color.red;
+        float spawnTimer = 0;
+
+        while(spawnTimer < spawnDelay) {
+            tileMat.color = Color.Lerp(initialColor,flashColor,Mathf.PingPong(spawnTimer*tileFlashSpeed,1));
+            
+            spawnTimer += Time.deltaTime;
+            yield return null;
+        }
+
+
+        Enemy spawnedEnemy = Instantiate(enemy, spawnTile.position + Vector3.up,Quaternion.identity) as Enemy;
+        spawnedEnemy.OnDeath += OnEnemyDeath;
+
     }
 
     void OnEnemyDeath() {
@@ -36,13 +95,26 @@ public class Spawner : MonoBehaviour
         }
     }
 
+    void OnPlayerDeath() {
+        isDisabled = true;
+    }
+
+    void ResetPlayerPosition() {
+        playerTransform.position = map.getTileFromPosition(Vector3.zero).position + Vector3.up*3;
+    }
+
     void NextWave() {
         currentWaveNumber ++;
         if (currentWaveNumber - 1 < waves.Length) {
             currentWave = waves[currentWaveNumber - 1];
             enemiesRemainingToSpawn = currentWave.enemyCount;
             enemiesRemainingAlive = enemiesRemainingToSpawn;
+
+            if (OnNewWave != null)  {
+                OnNewWave(currentWaveNumber);
+            }
         }
+        ResetPlayerPosition();
     }
 
     [System.Serializable]
