@@ -28,22 +28,26 @@ public class Enemy : LivingEntity
 
     bool hasTarget;
 
-    protected override void Start() {
-        base.Start();
+    void Awake() {
         pathFinder = GetComponent<UnityEngine.AI.NavMeshAgent>();    
-        skinMaterial = GetComponent<Renderer>().material;
-        originalColor = skinMaterial.color;
 
         if (GameObject.FindGameObjectWithTag("Player") != null) {
-            currentState = State.CHASING;
             hasTarget = true;
 
             target = GameObject.FindGameObjectWithTag("Player").transform;
             targetEntity = target.GetComponent<LivingEntity>();
-            targetEntity.OnDeath += OnTargetDeath;
 
             myCollisionRadius = GetComponent<CapsuleCollider>().radius;
             targetCollisionRadius = target.GetComponent<CapsuleCollider>().radius;
+        }
+    }
+
+    protected override void Start() {
+        base.Start();
+
+        if (hasTarget) {
+            currentState = State.CHASING;
+            targetEntity.OnDeath += OnTargetDeath;
 
             StartCoroutine(UpdatePath());
         }
@@ -79,6 +83,17 @@ public class Enemy : LivingEntity
         }
     }
 
+    public void SetCharacteristic(float moveSpeed, int hitsToKillPlayer, float enemyHealth, Color skinColour) {
+        pathFinder.speed = moveSpeed;
+        if (hasTarget) {
+            damage = Mathf.Ceil(targetEntity.startingHealth / hitsToKillPlayer);
+        }
+        startingHealth = enemyHealth;
+        skinMaterial = GetComponent<Renderer>().material;
+        skinMaterial.color = skinColour;
+        originalColor = skinMaterial.color;
+
+    }
 
     IEnumerator Attack() {
 

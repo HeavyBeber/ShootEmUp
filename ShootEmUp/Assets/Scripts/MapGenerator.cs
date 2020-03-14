@@ -10,6 +10,7 @@ public class MapGenerator : MonoBehaviour
 
     public Transform tilePrefab;
     public Transform obstaclePrefab;
+    public Transform mapFloor;
     public Transform navmeshFloor;
     public Transform navmeshMask;
     public Vector2 maxMapSize;
@@ -40,13 +41,12 @@ public class MapGenerator : MonoBehaviour
         currentMap = maps[mapIndex];
         tileMap = new Transform[currentMap.mapSize.x, currentMap.mapSize.y];
         System.Random rng = new System.Random(currentMap.seed);
-        GetComponent<BoxCollider>().size = new Vector3(currentMap.mapSize.x*tileSize,.5f,currentMap.mapSize.y*tileSize);
 
         //Prepare the map
         tilesCoord = new List<Coordinate> ();
         string holderName = "Generated Map";
-        if (transform.FindChild(holderName)) {
-            DestroyImmediate(transform.FindChild(holderName).gameObject);
+        if (transform.Find(holderName)) {
+            DestroyImmediate(transform.Find(holderName).gameObject);
         }
         Transform mapHolder = new GameObject(holderName).transform;
         mapHolder.parent = transform;
@@ -113,6 +113,7 @@ public class MapGenerator : MonoBehaviour
         maskBottom.localScale = new Vector3(maxMapSize.x,1,(maxMapSize.y-currentMap.mapSize.y)/2f)*tileSize;
         maskBottom.parent = mapHolder;
         navmeshFloor.localScale = new Vector3(maxMapSize.x,maxMapSize.y) * tileSize;
+        mapFloor.localScale = new Vector3(currentMap.mapSize.x*tileSize,currentMap.mapSize.y*tileSize);
     }
 
     bool mapIsFullyAccessible(bool[,] _obstacleMap, int _obstacleCount) {
