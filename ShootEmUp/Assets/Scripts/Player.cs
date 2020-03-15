@@ -12,12 +12,23 @@ public class Player : LivingEntity
     PlayerController controller;
     GunController gunController;
 
+    public Crosshairs crosshairs;
+
     protected override void Start()
     {
         base.Start();
         controller = GetComponent<PlayerController>();
         gunController = GetComponent<GunController>();
         viewCamera = Camera.main;
+    }
+
+    private void Awake() {
+        FindObjectOfType<Spawner> ().OnNewWave += OnNewWave;
+    }
+
+    void OnNewWave(int waveNumber) {
+        health = startingHealth;
+        gunController.EquipGun(waveNumber - 1);
     }
 
     void Update()
@@ -29,13 +40,16 @@ public class Player : LivingEntity
 
         //Look
         Ray ray = viewCamera.ScreenPointToRay(Input.mousePosition);
-        Plane groundPlane = new Plane(Vector3.up,Vector3.zero);
+        Plane groundPlane = new Plane(Vector3.up,Vector3.up*gunController.GunHeight());
         float rayDistance;
 
         if (groundPlane.Raycast(ray,out rayDistance)) {
             Vector3 point = ray.GetPoint(rayDistance);
             //Debug.DrawLine(ray.origin,point,Color.red);
             controller.LookAt(point);
+            crosshairs.transform.position = point;
+            crosshairs.DetectTargets(ray);
+            gunController.Aim(point);
         }
 
         //Weapon
@@ -44,6 +58,9 @@ public class Player : LivingEntity
         }
         if (Input.GetMouseButtonUp(0)) {
             gunController.OnTriggerRelease();
+        }
+        if (Input.GetKeyDown(KeyCode.R)) {
+            gunController.Reload();
         }
     }
 }
